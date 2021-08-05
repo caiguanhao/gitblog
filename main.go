@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"io/ioutil"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -13,6 +14,8 @@ import (
 
 var (
 	configFileLocation string
+
+	FrontendFS http.FileSystem
 )
 
 func getConfigs() *Configs {
@@ -64,6 +67,12 @@ func main() {
 	g.POST("/posts", api.createPost)
 	g.PUT("/posts/:id", api.updatePost)
 	g.DELETE("/posts/:id", api.destroyPost)
+
+	if FrontendFS != nil {
+		r.NoRoute(func(c *gin.Context) {
+			c.FileFromFS(c.Request.URL.Path, FrontendFS)
+		})
+	}
 
 	address := configs.Address
 	if address == "" {
