@@ -4,6 +4,7 @@ import (
 	"flag"
 	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 
@@ -15,7 +16,7 @@ import (
 var (
 	configFileLocation string
 
-	FrontendFS http.FileSystem
+	frontendFS http.FileSystem
 )
 
 func getConfigs() *Configs {
@@ -68,9 +69,16 @@ func main() {
 	g.PUT("/posts/:id", api.updatePost)
 	g.DELETE("/posts/:id", api.destroyPost)
 
-	if FrontendFS != nil {
+	if frontendFS != nil {
 		r.NoRoute(func(c *gin.Context) {
-			c.FileFromFS(c.Request.URL.Path, FrontendFS)
+			testResp := httptest.NewRecorder()
+			test, _ := gin.CreateTestContext(testResp)
+			test.Request = c.Request
+			test.FileFromFS(test.Request.URL.Path, frontendFS)
+			if testResp.Code == 404 {
+				c.Request.URL.Path = "/"
+			}
+			c.FileFromFS(c.Request.URL.Path, frontendFS)
 		})
 	}
 

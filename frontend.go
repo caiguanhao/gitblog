@@ -16,5 +16,5 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	FrontendFS = http.FS(f)
+	frontendFS = http.FS(f)
 }
