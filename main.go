@@ -50,7 +50,7 @@ func main() {
 }
 
 func restartServer() {
-	serverQuitChan <- syscall.SIGUSR1
+	serverQuitChan <- syscall.Signal(0xa)
 }
 
 func startServer() {
@@ -127,7 +127,7 @@ func startServer() {
 		log.Fatalln("Error shutting down server:", err)
 	}
 	log.Println("Server shut down successfully")
-	if signal == syscall.SIGUSR1 {
+	if signal == syscall.Signal(0xa) {
 		return
 	}
 	os.Exit(0)
