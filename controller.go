@@ -8,6 +8,7 @@ import (
 	"github.com/caiguanhao/gitdb"
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/gopsql/goconf"
 )
 
 type (
@@ -118,6 +119,21 @@ func (api API) destroyPost(c *gin.Context) {
 	api.db.MustAdd(api.modelPost.Path)
 	api.db.MustCommit(fmt.Sprint("destroyed post with id=", c.Param("id")))
 	c.Status(204)
+}
+
+func (api API) getConfigs(c *gin.Context) {
+	configs := getConfigs()
+	configs.SSHPrivateKey = nil
+	configs.SSHPrivateKeyPassword = ""
+	c.JSON(200, goconf.ToConfigs(*configs))
+}
+
+func (api API) updateConfigs(c *gin.Context) {
+	var configs Configs
+	c.ShouldBindJSON(&configs)
+	updateConfigs(&configs)
+	c.Status(204)
+	restartServer()
 }
 
 func (api API) getStatus(c *gin.Context) {

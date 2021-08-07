@@ -1,33 +1,32 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"flag"
-	"io/ioutil"
+	"fmt"
+	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/caiguanhao/gitdb"
 	"github.com/gin-gonic/gin"
-	"github.com/gopsql/goconf"
+	"github.com/pkg/browser"
 )
 
 var (
 	configFileLocation string
 
+	serverQuitChan chan os.Signal
+
 	frontendFS http.FileSystem
 )
-
-func getConfigs() *Configs {
-	c := Configs{}
-	content, err := ioutil.ReadFile(configFileLocation)
-	if err != nil {
-		return &c
-	}
-	goconf.Unmarshal(content, &c)
-	return &c
-}
 
 func main() {
 	defaultConfigFile := ".gitblog.go"
@@ -38,11 +37,22 @@ func main() {
 	toUpdateConfigs := flag.Bool("C", false, "create or update config file")
 	flag.Parse()
 
-	configs := getConfigs()
 	if *toUpdateConfigs {
-		updateConfigs(configs)
+		updateConfigs(getConfigs())
 		return
 	}
+
+	for {
+		startServer()
+	}
+}
+
+func restartServer() {
+	serverQuitChan <- syscall.SIGUSR1
+}
+
+func startServer() {
+	configs := getConfigs()
 
 	db := gitdb.NewDB(configs.Remote, configs.Local)
 	db.SetSSHKey("git", configs.SSHPrivateKey, configs.SSHPrivateKeyPassword)
@@ -61,6 +71,8 @@ func main() {
 	r.Use(gin.Logger())
 	r.Use(api.handleError)
 	g := r.Group("/api")
+	g.GET("/configs", api.getConfigs)
+	g.POST("/configs", api.updateConfigs)
 	g.GET("/status", api.getStatus)
 	g.POST("/push", api.push)
 	g.GET("/posts", api.getPosts)
@@ -86,5 +98,36 @@ func main() {
 	if address == "" {
 		address = "127.0.0.1:8080"
 	}
-	r.Run(address)
+
+	// open configs page for the first time
+	if !hasConfigs() && frontendFS != nil {
+		tcpAddr, err := net.ResolveTCPAddr("tcp", address)
+		if err == nil {
+			browser.OpenURL(fmt.Sprintf("http://127.0.0.1:%d/configs", tcpAddr.Port))
+		}
+	}
+
+	srv := &http.Server{
+		Addr:    address,
+		Handler: r,
+	}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Println("Listen error:", err)
+		}
+	}()
+	serverQuitChan = make(chan os.Signal)
+	signal.Notify(serverQuitChan, syscall.SIGINT, syscall.SIGTERM)
+	signal := <-serverQuitChan
+	log.Println("Shutting down server...")
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	if err := srv.Shutdown(ctx); err != nil {
+		log.Fatalln("Error shutting down server:", err)
+	}
+	log.Println("Server shut down successfully")
+	if signal == syscall.SIGUSR1 {
+		return
+	}
+	os.Exit(0)
 }

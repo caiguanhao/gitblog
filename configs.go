@@ -7,6 +7,7 @@ import (
 	"encoding/pem"
 	"io/ioutil"
 	"log"
+	"os"
 	"strings"
 
 	"github.com/gopsql/goconf"
@@ -38,6 +39,21 @@ func (s *SSHPrivateKey) SetString(input string) (err error) {
 
 func (s SSHPrivateKey) String() string {
 	return "\n" + string(s)
+}
+
+func hasConfigs() bool {
+	_, err := os.Stat(configFileLocation)
+	return err == nil
+}
+
+func getConfigs() *Configs {
+	c := Configs{}
+	content, err := ioutil.ReadFile(configFileLocation)
+	if err != nil {
+		return &c
+	}
+	goconf.Unmarshal(content, &c)
+	return &c
 }
 
 func updateConfigs(configs *Configs) {
