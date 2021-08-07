@@ -3,6 +3,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import RoutePosts from './posts/index.vue'
 import RoutePostsNew from './posts/new.vue'
 import RoutePostsEdit from './posts/edit.vue'
+import RouteConfigs from './configs/index.vue'
 import RouteSync from './status/sync.vue'
 import RouteError from './errors/index.vue'
 import RouteBlank from './errors/blank.vue'
@@ -22,6 +23,7 @@ const router = createRouter({
     { path: '/', name: 'RouteHome', component: RoutePosts, alias: [ '/posts' ] },
     { path: '/posts/new', name: 'RoutePostsNew', component: RoutePostsNew },
     { path: '/posts/:id/edit', name: 'RoutePostsEdit', component: RoutePostsEdit },
+    { path: '/configs', name: 'RouteConfigs', component: RouteConfigs },
     { path: '/sync', name: 'RouteSync', component: RouteSync },
     { path: '/error', name: 'RouteError', component: RouteError },
     { path: '/\n', name: 'RouteBlank', component: RouteBlank },

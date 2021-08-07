@@ -91,4 +91,10 @@ main > .container {
 .clickable-row:hover {
   background: #f1f1f1;
 }
+
+.fake-input { /* this prevents autofill */
+  position: absolute;
+  left: -100%;
+  opacity: 0;
+}
 </style>
