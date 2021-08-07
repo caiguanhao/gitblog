@@ -1,16 +1,18 @@
 <template>
-  <form class="col-sm-8 offset-sm-2" v-on:submit.prevent="submit">
+  <form class="col-sm-6 offset-sm-3" v-on:submit.prevent="submit">
     <input type="text" class="fake-input">
     <input type="password" class="fake-input">
     <div class="mb-3" v-for="config in configs">
-      <label class="form-label" v-text="config.Key"></label>
+      <label class="form-label">
+        <span v-text="config.Key"></span>
+        <small class="form-text small ms-3" v-text="config.Comment"></small>
+      </label>
       <textarea type="text" class="form-control" rows="6"
         v-if="types[config.Key] === 'textarea'" v-model="values[config.Key]"></textarea>
       <input type="password" class="form-control"
         v-else-if="types[config.Key] === 'password'" v-model="values[config.Key]">
       <input type="text" class="form-control"
         v-else v-model="values[config.Key]">
-      <div class="form-text" v-text="config.Comment"></div>
     </div>
     <div class="mb-3">
       <button type="submit" class="btn btn-primary"
