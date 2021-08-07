@@ -22,6 +22,7 @@ import (
 
 var (
 	configFileLocation string
+	noConfigsApi       bool
 
 	serverQuitChan chan os.Signal
 
@@ -35,6 +36,7 @@ func main() {
 	}
 	flag.StringVar(&configFileLocation, "c", defaultConfigFile, "location of the config file")
 	toUpdateConfigs := flag.Bool("C", false, "create or update config file")
+	flag.BoolVar(&noConfigsApi, "no-configs", false, "disable the configs api")
 	flag.Parse()
 
 	if *toUpdateConfigs {
@@ -71,8 +73,10 @@ func startServer() {
 	r.Use(gin.Logger())
 	r.Use(api.handleError)
 	g := r.Group("/api")
-	g.GET("/configs", api.getConfigs)
-	g.POST("/configs", api.updateConfigs)
+	if noConfigsApi == false {
+		g.GET("/configs", api.getConfigs)
+		g.POST("/configs", api.updateConfigs)
+	}
 	g.GET("/status", api.getStatus)
 	g.POST("/push", api.push)
 	g.GET("/posts", api.getPosts)
@@ -94,13 +98,10 @@ func startServer() {
 		})
 	}
 
-	address := configs.Address
-	if address == "" {
-		address = "127.0.0.1:8080"
-	}
+	address := configs.GetAddress()
 
 	// open configs page for the first time
-	if !hasConfigs() && frontendFS != nil {
+	if noConfigsApi == false && !hasConfigs() && frontendFS != nil {
 		tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 		if err == nil {
 			browser.OpenURL(fmt.Sprintf("http://127.0.0.1:%d/configs", tcpAddr.Port))
