@@ -59,7 +59,9 @@ func startServer() {
 	db := gitdb.NewDB(configs.Remote, configs.Local)
 	db.SetSSHKey("git", configs.SSHPrivateKey, configs.SSHPrivateKeyPassword)
 	db.SetUser(configs.UserName, configs.UserEmail)
-	db.MustInit()
+	if configs.Remote != "" && configs.Local != "" {
+		db.MustInit()
+	}
 
 	modelPost := db.NewCollection("posts.js")
 	modelPost.JSONPCallbackName = "__renderPosts"
@@ -99,13 +101,14 @@ func startServer() {
 	}
 
 	address := configs.GetAddress()
+	var portNumber int
+	if tcpAddr, err := net.ResolveTCPAddr("tcp", address); err == nil {
+		portNumber = tcpAddr.Port
+	}
 
 	// open configs page for the first time
-	if noConfigsApi == false && !hasConfigs() && frontendFS != nil {
-		tcpAddr, err := net.ResolveTCPAddr("tcp", address)
-		if err == nil {
-			browser.OpenURL(fmt.Sprintf("http://127.0.0.1:%d/configs", tcpAddr.Port))
-		}
+	if noConfigsApi == false && !hasConfigs() && frontendFS != nil && portNumber > 0 {
+		browser.OpenURL(fmt.Sprintf("http://127.0.0.1:%d/configs", portNumber))
 	}
 
 	srv := &http.Server{
@@ -113,6 +116,9 @@ func startServer() {
 		Handler: r,
 	}
 	go func() {
+		if portNumber > 0 {
+			log.Printf("Listening %s (http://127.0.0.1:%d)", address, portNumber)
+		}
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Println("Listen error:", err)
 		}
